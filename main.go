@@ -20,7 +20,7 @@ func main() {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	msg := welcome("Adventurer")
+	msg := welcome("Adventurer!")
 	fmt.Fprint(w, msg)
 }
 
