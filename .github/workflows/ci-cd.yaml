@@ -65,3 +65,31 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Create SSH directory
+        run: mkdir -p ~/.ssh/
+
+      - name: Store SSH private key
+        run: echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+
+      - name: Add host key to known hosts
+        run: |
+          ssh-keyscan ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to remote host
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} \
+          "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest && \
+           docker stop github-action-demo || true && \
+           docker rm github-action-demo || true && \
+           docker run -d \
+           --name github-action-demo \
+           --restart unless-stopped \
+           -p 8080:8080 \
+           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
